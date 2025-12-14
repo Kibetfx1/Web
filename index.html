@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TEDDY-TECH WEBSITE</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: url('IMAGES/background.jpg') no-repeat center center fixed;
+      background-size: cover;
+      color: #fff;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      background: #000000aa;
+      padding: 15px;
+      border-radius: 10px;
+    }
+    .section {
+      background: #000000c0;
+      margin: 30px auto;
+      padding: 20px;
+      max-width: 500px;
+      border-radius: 15px;
+      box-shadow: 0 0 10px #00ffcc;
+    }
+    input, button {
+      padding: 10px;
+      width: 100%;
+      margin: 10px 0;
+      border-radius: 5px;
+      border: none;
+      font-size: 16px;
+    }
+    button {
+      background: #00ffcc;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .result {
+      margin-top: 15px;
+    }
+    .thumbnail {
+      width: 100%;
+      border-radius: 10px;
+    }
+    .download-link {
+      background: #00ffcc;
+      color: #000;
+      padding: 10px;
+      display: inline-block;
+      border-radius: 5px;
+      margin-top: 10px;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>TEDDY-TECH WEBSITE</h1>
+
+  <!-- Facebook Downloader -->
+  <div class="section">
+    <h2>Download Facebook Video</h2>
+    <input type="text" id="facebookUrl" placeholder="Paste Facebook video URL...">
+    <button onclick="downloadFacebook()">Download</button>
+    <div id="facebookResult" class="result"></div>
+  </div>
+
+  <!-- YouTube Downloader -->
+  <div class="section">
+    <h2>Search and Download YouTube</h2>
+    <input type="text" id="ytQuery" placeholder="Enter song or video name...">
+    <button onclick="handleDownload('audio')">Download MP3</button>
+    <button onclick="handleDownload('video')">Download MP4</button>
+    <div id="errorMsg"></div>
+    <div id="resultContainer" class="result"></div>
+  </div>
+
+  <!-- App Downloader (search-based) -->
+  <div class="section">
+    <h2>Search App (Play Store)</h2>
+    <input type="text" id="appName" placeholder="Enter App Name...">
+    <button onclick="searchApp()">Search</button>
+    <div id="appResult" class="result"></div>
+  </div>
+
+  <script>
+    // FACEBOOK VIDEO
+    async function downloadFacebook() {
+      const url = document.getElementById('facebookUrl').value;
+      const resultDiv = document.getElementById('facebookResult');
+      resultDiv.innerHTML = "Processing...";
+      try {
+        const res = await fetch(`https://api.davidcyriltech.my.id/download/facebook?url=${encodeURIComponent(url)}`);
+        const data = await res.json();
+        if (data?.result?.url) {
+          resultDiv.innerHTML = `<a class="download-link" href="${data.result.url}" target="_blank">⬇ Download Video</a>`;
+        } else {
+          resultDiv.innerHTML = "Failed to get link.";
+        }
+      } catch (err) {
+        resultDiv.innerHTML = "Error: " + err.message;
+      }
+    }
+
+    // YOUTUBE MP3/MP4
+    async function handleDownload(type) {
+      const query = document.getElementById("ytQuery").value.trim();
+      const resultContainer = document.getElementById("resultContainer");
+      const errorMsg = document.getElementById("errorMsg");
+      resultContainer.innerHTML = '';
+      errorMsg.textContent = '';
+
+      if (!query) {
+        errorMsg.textContent = "❌ Please enter a YouTube video name.";
+        return;
+      }
+
+      try {
+        const searchRes = await fetch(`https://my-rest-apis-six.vercel.app/yts?query=${encodeURIComponent(query)}`);
+        const searchJson = await searchRes.json();
+        if (!searchJson.results || searchJson.results.length === 0) {
+          throw new Error("No results found.");
+        }
+
+        const video = searchJson.results[0];
+        const videoUrl = video.url;
+
+        const endpoint = type === 'audio' 
+          ? `https://apis.davidcyriltech.my.id/download/ytmp3?url=${encodeURIComponent(videoUrl)}`
+          : `https://apis.davidcyriltech.my.id/download/ytmp4?url=${encodeURIComponent(videoUrl)}`;
+
+        const downloadRes = await fetch(endpoint);
+        const downloadJson = await downloadRes.json();
+
+        if (!downloadJson.success || !downloadJson.result?.download_url) {
+          throw new Error("Download not available.");
+        }
+
+        const d = downloadJson.result;
+        resultContainer.innerHTML = `
+          <div class="result">
+            <img class="thumbnail" src="${d.thumbnail}" alt="Thumbnail">
+            <div class="info">
+              <h2>${d.title}</h2>
+              <p><strong>Type:</strong> ${d.type}</p>
+              <p><strong>Quality:</strong> ${d.quality}</p>
+              <a class="download-link" href="${d.download_url}" target="_blank" download>
+                ⬇ Download ${type === 'audio' ? 'MP3' : 'MP4'}
+              </a>
+            </div>
+          </div>
+        `;
+      } catch (err) {
+        errorMsg.textContent = "❌ " + err.message;
+      }
+    }
+
+    // APP Search (placeholder)
+    async function searchApp() {
+      const name = document.getElementById("appName").value.trim();
+      const result = document.getElementById("appResult");
+      result.innerHTML = "🔍 Searching...";
+      if (!name) return result.innerHTML = "❌ Enter app name";
+      result.innerHTML = `Sorry, App search API not connected yet. Please search manually.`;
+    }
+  </script>
+
+</body>
+</html>
